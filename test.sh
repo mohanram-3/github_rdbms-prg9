@@ -4,20 +4,33 @@ DB="CollegeDB"
 TOTAL=0
 FAILED=0
 
+# MySQL connection
+MYSQL="mysql -h 127.0.0.1 -P 3306 -uroot -p${MYSQL_ROOT_PASSWORD}"
+
 echo "========================================"
 echo " INNER JOIN - Student Department"
 echo "========================================"
 
+echo "Checking MySQL connection..."
+
+if ! $MYSQL -e "SELECT 1;" > /dev/null 2>&1; then
+    echo "FAIL: Cannot connect to MySQL server."
+    exit 1
+fi
+
+echo "MySQL connection successful."
+echo ""
+
 echo "Creating fresh CollegeDB database..."
 
-mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" -e "
+$MYSQL -e "
 DROP DATABASE IF EXISTS $DB;
 CREATE DATABASE $DB;
-"
+" || exit 1
 
 echo "Executing student_solution.sql..."
 
-if mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" < student_solution.sql; then
+if $MYSQL < student_solution.sql; then
     echo "SQL execution completed."
 else
     echo "FAIL: SQL execution error."
@@ -26,13 +39,10 @@ fi
 
 echo ""
 
-# ============================================
-# Test Case 1 - Department table
-# ============================================
-
+# Test 1
 echo "Test Case 1: Department table..."
 
-RESULT=$(mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" -Nse "
+RESULT=$($MYSQL -Nse "
 SELECT COUNT(*)
 FROM information_schema.tables
 WHERE table_schema='$DB'
@@ -49,13 +59,10 @@ fi
 
 echo ""
 
-# ============================================
-# Test Case 2 - Student table
-# ============================================
-
+# Test 2
 echo "Test Case 2: Student table..."
 
-RESULT=$(mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" -Nse "
+RESULT=$($MYSQL -Nse "
 SELECT COUNT(*)
 FROM information_schema.tables
 WHERE table_schema='$DB'
@@ -72,13 +79,10 @@ fi
 
 echo ""
 
-# ============================================
-# Test Case 3 - Department records
-# ============================================
-
+# Test 3
 echo "Test Case 3: Department records..."
 
-RESULT=$(mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" -Nse "
+RESULT=$($MYSQL -Nse "
 SELECT COUNT(*) FROM $DB.Department;
 ")
 
@@ -92,13 +96,10 @@ fi
 
 echo ""
 
-# ============================================
-# Test Case 4 - Student records
-# ============================================
-
+# Test 4
 echo "Test Case 4: Student records..."
 
-RESULT=$(mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" -Nse "
+RESULT=$($MYSQL -Nse "
 SELECT COUNT(*) FROM $DB.Student;
 ")
 
@@ -112,13 +113,10 @@ fi
 
 echo ""
 
-# ============================================
-# Test Case 5 - Department columns
-# ============================================
-
+# Test 5
 echo "Test Case 5: Department columns..."
 
-RESULT=$(mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" -Nse "
+RESULT=$($MYSQL -Nse "
 SELECT COUNT(*)
 FROM information_schema.columns
 WHERE table_schema='$DB'
@@ -136,13 +134,10 @@ fi
 
 echo ""
 
-# ============================================
-# Test Case 6 - Student columns
-# ============================================
-
+# Test 6
 echo "Test Case 6: Student columns..."
 
-RESULT=$(mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" -Nse "
+RESULT=$($MYSQL -Nse "
 SELECT COUNT(*)
 FROM information_schema.columns
 WHERE table_schema='$DB'
@@ -160,13 +155,10 @@ fi
 
 echo ""
 
-# ============================================
-# Test Case 7 - Department values
-# ============================================
-
+# Test 7
 echo "Test Case 7: Department values..."
 
-RESULT=$(mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" -Nse "
+RESULT=$($MYSQL -Nse "
 SELECT COUNT(*)
 FROM $DB.Department
 WHERE
@@ -187,13 +179,10 @@ fi
 
 echo ""
 
-# ============================================
-# Test Case 8 - Student values
-# ============================================
-
+# Test 8
 echo "Test Case 8: Student values..."
 
-RESULT=$(mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" -Nse "
+RESULT=$($MYSQL -Nse "
 SELECT COUNT(*)
 FROM $DB.Student
 WHERE
@@ -216,13 +205,10 @@ fi
 
 echo ""
 
-# ============================================
-# Test Case 9 - INNER JOIN record count
-# ============================================
-
+# Test 9
 echo "Test Case 9: INNER JOIN results..."
 
-RESULT=$(mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" -Nse "
+RESULT=$($MYSQL -Nse "
 SELECT COUNT(*)
 FROM $DB.Student s
 INNER JOIN $DB.Department d
@@ -239,10 +225,7 @@ fi
 
 echo ""
 
-# ============================================
-# Test Case 10 - Complete JOIN mapping
-# ============================================
-
+# Test 10
 echo "Test Case 10: Student-Department mapping..."
 
 EXPECTED="Arun|Computer Science
@@ -250,31 +233,23 @@ Divya|Mathematics
 Karthik|Computer Science
 Nisha|Physics"
 
-ACTUAL=$(mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" -Nse "
+ACTUAL=$($MYSQL -Nse "
 SELECT s.StudentName, d.DepartmentName
 FROM $DB.Student s
 INNER JOIN $DB.Department d
 ON s.DepartmentID = d.DepartmentID
 ORDER BY s.StudentID;
-" | sed 's/\t/|/')
+" | sed 's/	/|/')
 
 if [ "$ACTUAL" = "$EXPECTED" ]; then
     echo "PASS: Student-Department mapping is correct."
     TOTAL=$((TOTAL+1))
 else
     echo "FAIL: Student-Department mapping is incorrect."
-    echo "Expected:"
-    echo "$EXPECTED"
-    echo "Actual:"
-    echo "$ACTUAL"
     FAILED=$((FAILED+1))
 fi
 
 echo ""
-
-# ============================================
-# Display result
-# ============================================
 
 echo "========================================"
 echo "Total Marks: $TOTAL / 10"
