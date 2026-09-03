@@ -1,0 +1,40 @@
+name: RDBMS INNER JOIN Autograding
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install MySQL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mysql-server
+
+      - name: Start MySQL Server
+        run: |
+          sudo systemctl start mysql
+          sudo systemctl enable mysql
+          sudo systemctl status mysql --no-pager
+
+      - name: Configure MySQL
+        run: |
+          sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'root';"
+          sudo mysql -e "FLUSH PRIVILEGES;"
+
+      - name: Make test.sh executable
+        run: |
+          chmod +x test.sh
+
+      - name: Run Autograding
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        run: |
+          ./test.sh
